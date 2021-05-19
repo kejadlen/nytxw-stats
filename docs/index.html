@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+  </head>
+  <body>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script type="module">
+
+      import * as Plot from "https://cdn.skypack.dev/@observablehq/plot@0.1";
+      import { getDay, parseISO } from "https://cdn.skypack.dev/date-fns";
+
+      fetch("./crosswords.json")
+        .then(resp => resp.json())
+        .then(data => data.filter(d => d.solved))
+        .then(data => data.map(d => ({
+          ...d,
+          date: parseISO(d.date),
+          time: d.secondsSpentSolving / 60,
+          })))
+        .then(data => data.filter(d => d.time < 100))
+        .then(data => {
+          document.body.appendChild(Plot.plot({
+            marks: [
+              Plot.dot(
+                data, {
+                  x: "date",
+                  y: "time",
+                  r: 1,
+                  stroke: d => d3.schemeDark2[getDay(d.date)],
+              }),
+            ],
+          }))
+        });
+
+    </script>
+  </body>
+</html>
