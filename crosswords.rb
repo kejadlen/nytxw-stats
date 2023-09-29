@@ -1,9 +1,9 @@
 require "date"
 require "json"
-require "open-uri"
+require "net/http"
 
 class NYT
-  API = "https://nyt-games-prd.appspot.com/svc/crosswords"
+  API = "https://www.nytimes.com/svc/crosswords"
 
   def initialize(nyt_s)
     @nyt_s = nyt_s
@@ -14,8 +14,8 @@ class NYT
     id = puzzle_id(date)
     return nil if id.nil?
 
-    url = "#{API}/v6/game/#{id}.json"
-    JSON.parse(URI.open(url, "nyt-s" => @nyt_s).read)
+    uri = URI("#{API}/v6/game/#{id}.json")
+    JSON.parse(Net::HTTP.get(uri, {cookie: "NYT-S=#@nyt_s"}))
   end
 
   private
@@ -27,8 +27,8 @@ class NYT
     date_start = last_date + 1
     date_end = date_start >> 3 # 3 months
 
-    url = "#{API}/v3/55348624/puzzles.json?date_start=#{date_start}&date_end=#{date_end}"
-    json = JSON.parse(URI.open(url, "nyt-s" => @nyt_s).read)
+    uri = URI("#{API}/v3/55348624/puzzles.json?date_start=#{date_start}&date_end=#{date_end}")
+    json = JSON.parse(Net::HTTP.get(uri))
     results = json.fetch("results")
     return nil if results.nil?
 
