@@ -9,15 +9,15 @@ jobs:
     steps:
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: 3
-      - uses: actions/checkout@v2
+          bundler-cache: true
+      - uses: actions/checkout@v4
       - run: rake update
         env:
           NYT_S: ${{ secrets.NYT_S }}
       - run: |
           git config user.name "GitHub Actions"
           git config user.email "<>"
-          if ! git diff-index --quiet HEAD --; then
+          if ! git diff-index --quiet HEAD data/*.json; then
             git add data/*.json
             git commit -m "`date -I`"
             git push
