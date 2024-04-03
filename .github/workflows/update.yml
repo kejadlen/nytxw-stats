@@ -7,10 +7,10 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
-      - uses: actions/checkout@v4
       - run: rake update
         env:
           NYT_S: ${{ secrets.NYT_S }}
