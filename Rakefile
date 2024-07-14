@@ -16,7 +16,7 @@ def update(date)
   updated = fetch(date)
   return if updated.nil?
 
-  filename = "data/#{date.iso8601}.json"
+  filename = "data/#{date.strftime("%Y/%m-%d")}.json"
   File.write(filename, JSON.dump(updated))
 end
 
@@ -29,8 +29,8 @@ task :bootstrap, [:start] do |t, args|
     to = [(from >> 12) - 1, Date.today].min
     dates = (from..to).to_a
 
-    existing_dates = FileList["data/*.json"]
-      .map {|p| File.basename(p, ".json") }
+    existing_dates = FileList["data/**/*.json"]
+      .pathmap("%-1d-%n")
       .map {|d| Date.iso8601(d) }
     (dates - existing_dates).each do |date|
       update(date)
