@@ -49,21 +49,3 @@ task :backfill, [:delta] do |t, args|
     update(date)
   end
 end
-
-raw = FileList["data/*.json"]
-file "crosswords.json" => raw do |t|
-  data = raw.each.with_object({}) {|path, data|
-    date = File.basename(path, ".json")
-    date_data = JSON.parse(File.read(path))
-    data[date] = date_data
-  }.map {|date, data|
-    {
-      date: date,
-      revealedCount: data.fetch("board", {}).fetch("cells", []).count {|cell| cell.has_key?("revealed") },
-      secondsSpentSolving: data.fetch("calcs", {}).fetch("secondsSpentSolving", nil),
-      solved: data.fetch("calcs", {}).fetch("solved", false),
-    }
-  }
-
-  File.write(t.name, JSON.dump(data))
-end
