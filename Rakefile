@@ -15,6 +15,7 @@ end
 def update(date)
   updated = fetch(date)
   return if updated.nil?
+  fail if ["status"] == "ERROR"
 
   filename = "data/#{date.strftime("%Y/%m-%d")}.json"
   File.write(filename, JSON.dump(updated))
