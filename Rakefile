@@ -39,7 +39,7 @@ task :bootstrap, [:start] do |t, args|
   end
 end
 
-task :update, [:delta] do |t, args|
+task :backfill, [:delta] do |t, args|
   args.with_defaults(delta: 7)
   delta = args.delta.to_i
 
