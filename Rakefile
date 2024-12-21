@@ -6,6 +6,7 @@ require_relative "crosswords"
 LOGGER = Logger.new(STDOUT)
 LOGGER.level = Logger::INFO
 
+desc "Bootstrap the crossword data from the given start year"
 task :bootstrap, [:start] do |t, args|
   args.with_defaults(start: Date.today.year)
   start = args.start.to_i
@@ -24,6 +25,7 @@ task :bootstrap, [:start] do |t, args|
   end
 end
 
+desc "Backfill the crossword data for the last N days"
 task :backfill, [:delta] do |t, args|
   args.with_defaults(delta: 7)
   delta = args.delta.to_i
@@ -35,6 +37,7 @@ task :backfill, [:delta] do |t, args|
   end
 end
 
+desc "Fetch the crossword data for a given date"
 task :fetch, [:date] do |t, args|
   date = Date.iso8601(args.fetch(:date))
   LOGGER.info("Fetching #{date}")
