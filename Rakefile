@@ -3,23 +3,8 @@ require "json"
 require "logger"
 require_relative "crosswords"
 
-@logger = Logger.new(STDOUT)
-@logger.level = Logger::INFO
-@nyt = NYT.new(ENV.fetch("NYT_S"))
-
-def fetch(date)
-  @logger.info("Fetching #{date}")
-  @nyt.fetch(date)
-end
-
-def update(date)
-  updated = fetch(date)
-  return if updated.nil?
-  fail if ["status"] == "ERROR"
-
-  filename = "data/#{date.strftime("%Y/%m-%d")}.json"
-  File.write(filename, JSON.dump(updated))
-end
+LOGGER = Logger.new(STDOUT)
+LOGGER.level = Logger::INFO
 
 task :bootstrap, [:start] do |t, args|
   args.with_defaults(start: Date.today.year)
@@ -34,7 +19,7 @@ task :bootstrap, [:start] do |t, args|
       .pathmap("%-1d-%n")
       .map {|d| Date.iso8601(d) }
     (dates - existing_dates).each do |date|
-      update(date)
+      Rake::Task[:fetch].execute(date: date.iso8601)
     end
   end
 end
@@ -46,6 +31,19 @@ task :backfill, [:delta] do |t, args|
   from = Date.today - delta
   to = Date.today
   (from..to).each do |date|
-    update(date)
+    Rake::Task[:fetch].execute(date: date.iso8601)
   end
+end
+
+task :fetch, [:date] do |t, args|
+  date = Date.iso8601(args.fetch(:date))
+  LOGGER.info("Fetching #{date}")
+
+  nyt = NYT.new(ENV.fetch("NYT_S"))
+  updated = nyt.fetch(date)
+  return if updated.nil?
+  fail if ["status"] == "ERROR"
+
+  filename = "data/#{date.strftime("%Y/%m-%d")}.json"
+  File.write(filename, JSON.dump(updated))
 end
