@@ -5,6 +5,8 @@ require "net/http"
 class NYT
   API = "https://www.nytimes.com/svc/crosswords"
 
+  PuzzleNotFound = Class.new(StandardError)
+
   def initialize(nyt_s)
     @nyt_s = nyt_s
     @puzzles = {}
@@ -12,10 +14,13 @@ class NYT
 
   def fetch(date)
     id = puzzle_id(date)
-    return nil if id.nil?
 
     uri = URI("#{API}/v6/game/#{id}.json")
-    JSON.parse(Net::HTTP.get(uri, {cookie: "NYT-S=#@nyt_s"}))
+    resp = Net::HTTP.get(uri, {cookie: "NYT-S=#@nyt_s"})
+    data = JSON.parse(resp)
+    fail if data["status"] == "ERROR"
+
+    data
   end
 
   private
@@ -36,6 +41,9 @@ class NYT
       [Date.parse(result.fetch("print_date")), result]
     }.to_h)
 
-    @puzzles.fetch(date).fetch("puzzle_id")
+    id = @puzzles.fetch(date).fetch("puzzle_id")
+    raise PuzzleNotFound if id.nil?
+
+    id
   end
 end

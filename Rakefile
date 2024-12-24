@@ -44,8 +44,6 @@ task :fetch, [:date] do |t, args|
 
   nyt = NYT.new(ENV.fetch("NYT_S"))
   updated = nyt.fetch(date)
-  return if updated.nil?
-  fail if ["status"] == "ERROR"
 
   filename = "data/#{date.strftime("%Y/%m-%d")}.json"
   File.write(filename, JSON.dump(updated))
