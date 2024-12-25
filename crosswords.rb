@@ -5,6 +5,7 @@ require "net/http"
 class NYT
   API = "https://www.nytimes.com/svc/crosswords"
 
+  ProbablyNotAuthed = Class.new(StandardError)
   PuzzleNotFound = Class.new(StandardError)
 
   def initialize(nyt_s)
@@ -18,7 +19,7 @@ class NYT
     uri = URI("#{API}/v6/game/#{id}.json")
     resp = Net::HTTP.get(uri, {cookie: "NYT-S=#@nyt_s"})
     data = JSON.parse(resp)
-    fail if data["status"] == "ERROR"
+    raise ProbablyNotAuthed if data["status"] == "ERROR"
 
     data
   end
