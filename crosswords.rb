@@ -18,6 +18,8 @@ class NYT
 
     uri = URI("#{API}/v6/game/#{id}.json")
     resp = Net::HTTP.get(uri, {cookie: "NYT-S=#@nyt_s"})
+    raise PuzzleNotFound if resp.code == "404"
+
     data = JSON.parse(resp)
     raise ProbablyNotAuthed if data["status"] == "ERROR"
 
