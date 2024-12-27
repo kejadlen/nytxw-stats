@@ -17,10 +17,10 @@ class NYT
     id = puzzle_id(date)
 
     uri = URI("#{API}/v6/game/#{id}.json")
-    resp = Net::HTTP.get(uri, {cookie: "NYT-S=#@nyt_s"})
+    resp = Net::HTTP.get_response(uri, {cookie: "NYT-S=#@nyt_s"})
     raise PuzzleNotFound if resp.code == "404"
 
-    data = JSON.parse(resp)
+    data = JSON.parse(resp.body)
     raise ProbablyNotAuthed if data["status"] == "ERROR"
 
     data
