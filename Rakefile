@@ -45,6 +45,9 @@ task :fetch, [:date] do |t, args|
   nyt = NYT.new(ENV.fetch("NYT_S"))
   updated = nyt.fetch(date)
 
+  dir = "data/#{date.year}"
+  mkdir dir unless Dir.exist?(dir)
+
   filename = "data/#{date.strftime("%Y/%m-%d")}.json"
   File.write(filename, JSON.dump(updated))
 end
