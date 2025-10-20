@@ -3,11 +3,26 @@
 require "date"
 require "json"
 
+require "rake/ext/string"
+
+def format_time(seconds)
+  return "0s" if seconds == 0
+  
+  minutes = seconds.to_i / 60
+  remaining_seconds = seconds.to_i % 60
+  
+  if minutes > 0
+    "#{minutes}m#{remaining_seconds}s"
+  else
+    "#{remaining_seconds}s"
+  end
+end
+
 def data
   return enum_for(__method__) unless block_given?
 
-  Dir["data/*.json"].each do |file|
-    yield Date.parse(File.basename(file, ".json")), JSON.parse(File.read(file))
+  Dir["data/**/*.json"].each do |file|
+    yield Date.parse(file.pathmap("%d-%n")), JSON.parse(File.read(file))
   end
 end
 
@@ -29,8 +44,10 @@ stddevs = wday_times
     [wday, Math.sqrt(secs.map { (_1 - mean) ** 2 }.sum / secs.size)]
   }
 
+puts "%-9s %8s %8s" % ["Day", "Mean", "StdDev"]
 [*(1..6), 0].each do |wday|
-  puts "#{wday}: #{means.fetch(wday)} #{stddevs.fetch(wday).round(2)}"
+  puts "%-9s %8s %8s" %
+    [Date::DAYNAMES.fetch(wday), format_time(means.fetch(wday)), format_time(stddevs.fetch(wday))]
 end
 
 z_scores = last_year.to_h {|date, secs|
@@ -39,14 +56,22 @@ z_scores = last_year.to_h {|date, secs|
   [date, (secs - mean) / stddev]
 }
 
+puts
+puts "%-21s %6s" % ["Date", "Z-Score"]
 z_scores
   .sort_by { -_2 }[0,10]
   .each do |date, x|
-    puts "#{date} (#{date.wday}): #{x.round(2)}"
+    puts "%-22s %6.2f" % ["#{date} (#{Date::DAYNAMES.fetch(date.wday)})", x]
   end
 
+puts
+puts Date.today
 puts z_scores.fetch(Date.today).round(2)
 puts z_scores.fetch(Date.today - 7).round(2)
+
+puts
+puts "2025-10-18"
+puts z_scores.fetch(Date.new(2025, 10, 18)).round(2)
 
 # solve_times
 #   .group_by {|date,_| date.year }
