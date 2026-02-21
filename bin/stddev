@@ -1,0 +1,62 @@
+#!/usr/bin/env ruby
+
+require "date"
+require "json"
+require "pathname"
+require "rake/ext/string"
+
+def format_time(seconds)
+  minutes = seconds.to_i / 60
+  remaining = seconds.to_i % 60
+  minutes > 0 ? "#{minutes}m#{remaining}s" : "#{remaining}s"
+end
+
+target =
+  if (arg = ARGV.first)
+    begin
+      Date.iso8601(arg)
+    rescue ArgumentError
+      abort "Invalid date: #{arg.inspect} (expected YYYY-MM-DD)"
+    end
+  else
+    Date.today
+  end
+
+# Anchor the data glob to the repo root so the script works from any cwd.
+root = Pathname.new(__dir__).parent
+
+# Load all solve times
+solve_times = Dir[root.join("data/**/*.json").to_s].to_h { |file|
+  date = Date.parse(file.pathmap("%d-%n"))
+  secs = JSON.parse(File.read(file)).dig("calcs", "secondsSpentSolving")
+  [date, secs]
+}.compact
+
+target_time = solve_times.fetch(target) {
+  abort "No data for #{target}"
+}
+
+# Collect same-weekday solves from the past year (excluding the target date)
+one_year_ago = target.prev_year
+same_wday = solve_times
+  .select { |d, _| d.wday == target.wday && d > one_year_ago && d < target }
+  .values
+
+abort "Not enough same-weekday data in the past year" if same_wday.empty?
+
+# Stats
+n     = same_wday.size
+mean  = same_wday.sum.to_f / n
+variance = same_wday.map { |s| (s - mean) ** 2 }.sum / n
+stddev   = Math.sqrt(variance)
+z_score  = (target_time - mean) / stddev
+
+puts "Date: #{target} (#{Date::DAYNAMES[target.wday]})"
+puts "Solve time: #{format_time(target_time)} (#{target_time}s)"
+puts
+puts "Past-year #{Date::DAYNAMES[target.wday]}s (n=#{n}):"
+puts "  Mean:   #{format_time(mean)} (#{mean.round(1)}s)"
+puts "  StdDev: #{format_time(stddev)} (#{stddev.round(1)}s)"
+puts
+puts "Difference from mean: #{format_time((target_time - mean).abs)} (#{(target_time - mean).round(1)}s)"
+puts "Z-score: #{z_score.round(2)} (#{z_score.positive? ? 'slower' : 'faster'} than average)"
