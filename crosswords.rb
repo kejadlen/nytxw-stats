@@ -37,6 +37,11 @@ class NYT
 
     uri = URI("#{API}/v3/55348624/puzzles.json?date_start=#{date_start}&date_end=#{date_end}")
     json = JSON.parse(Net::HTTP.get(uri))
+    unless json.is_a?(Hash)
+      raise ProbablyNotAuthed,
+        "Expected a JSON object from the NYT puzzles API but got #{json.inspect}. " \
+        "The NYT-S cookie is likely invalid or expired; refresh it and try again."
+    end
     results = json.fetch("results")
     return nil if results.nil?
 
