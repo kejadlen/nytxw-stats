@@ -42,10 +42,8 @@ desc "Refresh the NYT-S cookie and store it as the NYT_S GitHub secret"
 task :cookie do
   require "ferrum"
 
-  item = "mhdnpx5oj7bawkgo6qeoeiib2i"
-  account = "MJ5FA3PYDBETVKQHERQYLJ475Y"
-  json, status = Open3.capture2("op", "item", "get", item, "--account", account, "--format", "json")
-  raise "op item get #{item} failed" unless status.success?
+  json, status = Open3.capture2("op", "item", "get", "New York Times", "--format", "json")
+  raise "op item get failed" unless status.success?
 
   fields = JSON.parse(json).fetch("fields").to_h {|f| [f["purpose"], f["value"]] }
 
@@ -69,7 +67,7 @@ task :cookie do
     browser.quit
   end
 
-  LOGGER.info("Got cookie; updating NYT_S secret")
+  LOGGER.info("Got cookie; updating NYT_S secret (#{nyt_s})")
 
   # gh reads the secret value from stdin; sh/system can't feed a child's
   # stdin, so Open3 pipes the cookie straight in — keeping it off the
