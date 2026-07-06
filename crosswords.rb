@@ -16,8 +16,7 @@ class NYT
   def fetch(date)
     id = puzzle_id(date)
 
-    uri = URI("#{API}/v6/game/#{id}.json")
-    resp = Net::HTTP.get_response(uri, {cookie: "NYT-S=#@nyt_s"})
+    resp = get("v6/game/#{id}.json")
     raise PuzzleNotFound if resp.code == "404"
 
     data = JSON.parse(resp.body)
@@ -28,6 +27,11 @@ class NYT
 
   private
 
+  def get(path)
+    uri = URI("#{API}/#{path}")
+    Net::HTTP.get_response(uri, {cookie: "NYT-S=#@nyt_s"})
+  end
+
   def puzzle_id(date)
     return @puzzles.fetch(date).fetch("puzzle_id") if @puzzles.has_key?(date)
 
@@ -35,8 +39,8 @@ class NYT
     date_start = last_date + 1
     date_end = date_start >> 3 # 3 months
 
-    uri = URI("#{API}/v3/55348624/puzzles.json?date_start=#{date_start}&date_end=#{date_end}")
-    json = JSON.parse(Net::HTTP.get(uri))
+    resp = get("v3/55348624/puzzles.json?date_start=#{date_start}&date_end=#{date_end}")
+    json = JSON.parse(resp.body)
     unless json.is_a?(Hash)
       raise ProbablyNotAuthed,
         "Expected a JSON object from the NYT puzzles API but got #{json.inspect}. " \
