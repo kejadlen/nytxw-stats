@@ -5,6 +5,8 @@ require "json"
 
 require "rake/ext/string"
 
+require_relative "puzzle"
+
 def format_time(seconds)
   return "0s" if seconds == 0
   
@@ -22,12 +24,12 @@ def data
   return enum_for(__method__) unless block_given?
 
   Dir["data/**/*.json"].each do |file|
-    yield Date.parse(file.pathmap("%d-%n")), JSON.parse(File.read(file))
+    yield Date.parse(file.pathmap("%d-%n")), Puzzle.load(file)
   end
 end
 
 solve_times = data.to_h
-  .transform_values { _1.fetch("calcs", {}).fetch("secondsSpentSolving", nil) }
+  .transform_values(&:solve_seconds)
   .reject { _2.nil? }
 
 last_year = solve_times

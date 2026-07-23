@@ -5,6 +5,8 @@ require "json"
 require "pathname"
 require "rake/ext/string"
 
+require_relative "../puzzle"
+
 def format_time(seconds)
   minutes = seconds.to_i / 60
   remaining = seconds.to_i % 60
@@ -28,7 +30,7 @@ root = Pathname.new(__dir__).parent
 # Load all solve times
 solve_times = Dir[root.join("data/**/*.json").to_s].to_h { |file|
   date = Date.parse(file.pathmap("%d-%n"))
-  secs = JSON.parse(File.read(file)).dig("calcs", "secondsSpentSolving")
+  secs = Puzzle.load(file).solve_seconds
   [date, secs]
 }.compact
 
