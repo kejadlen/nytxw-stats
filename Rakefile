@@ -84,7 +84,15 @@ task :fetch, [:date] do |t, args|
   LOGGER.info("Fetching #{date}")
 
   nyt = NYT.new(ENV.fetch("NYT_S"))
-  updated = nyt.fetch(date)
+  begin
+    updated = nyt.fetch(date)
+  rescue NYT::PuzzleNotFound => e
+    # An unpublished or unsolved crossword is the normal state of the last day
+    # or two of a backfill, so skip the date and let a later run pick it up.
+    # Auth failures still raise, since those need a new cookie.
+    LOGGER.info("Skipping #{date}: #{e.message}")
+    next
+  end
 
   dir = "data/#{date.year}"
   mkdir dir unless Dir.exist?(dir)

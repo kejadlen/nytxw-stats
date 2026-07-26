@@ -6,6 +6,11 @@ class NYT
   API = "https://www.nytimes.com/svc"
 
   ProbablyNotAuthed = Class.new(StandardError)
+
+  # Raised when there is nothing to save for a date: either the NYT hasn't
+  # published a crossword for it, or the crossword is published but unstarted,
+  # so it has no solve state yet. Callers that walk a range of dates should
+  # treat this as "come back later" rather than as a failure.
   PuzzleNotFound = Class.new(StandardError)
 
   def initialize(nyt_s)
@@ -21,7 +26,11 @@ class NYT
 
     states = JSON.parse(resp.body).fetch("states")
     state = states.find {|s| s.fetch("puzzle_id").to_s == id.to_s }
-    raise PuzzleNotFound if state.nil?
+    if state.nil?
+      raise PuzzleNotFound,
+        "The #{date} crossword (puzzle #{id}) has no saved state. " \
+        "Solve it, then fetch the date again."
+    end
 
     state.fetch("game_data")
   end
@@ -34,8 +43,19 @@ class NYT
   end
 
   def puzzle_id(date)
-    return @puzzles.fetch(date).fetch("puzzle_id") if @puzzles.has_key?(date)
+    load_puzzles(date) unless @puzzles.has_key?(date)
 
+    puzzle = @puzzles[date]
+    id = puzzle && puzzle.fetch("puzzle_id")
+    raise PuzzleNotFound, "The NYT hasn't published a crossword for #{date}." if id.nil?
+
+    id
+  end
+
+  # Caches every puzzle the NYT lists for the three months starting after the
+  # latest date already cached, which covers `date` as long as callers walk
+  # forward in time. Dates the NYT doesn't list stay absent from the cache.
+  def load_puzzles(date)
     last_date = @puzzles.keys.sort.last || date - 1
     date_start = last_date + 1
     date_end = date_start >> 3 # 3 months
@@ -47,16 +67,10 @@ class NYT
         "Expected a JSON object from the NYT puzzles API but got #{json.inspect}. " \
         "The NYT-S cookie is likely invalid or expired; refresh it and try again."
     end
-    results = json.fetch("results")
-    return nil if results.nil?
+    results = json.fetch("results") or return
 
     @puzzles.merge!(results.map {|result|
       [Date.parse(result.fetch("print_date")), result]
     }.to_h)
-
-    id = @puzzles.fetch(date).fetch("puzzle_id")
-    raise PuzzleNotFound if id.nil?
-
-    id
   end
 end
