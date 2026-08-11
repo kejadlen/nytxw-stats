@@ -17,8 +17,10 @@ jobs:
       - run: |
           git config user.name "GitHub Actions"
           git config user.email "<>"
-          if ! git diff-index --quiet HEAD data/**/*.json; then
-            git add data/**/*.json
-            git commit -m "`date -I`"
+          # Backfill rewrites every file it fetches, so only the index sees
+          # whether the contents actually changed.
+          git add 'data/**/*.json'
+          if ! git diff --cached --quiet; then
+            git commit -m "$(date -I)"
             git push
           fi
