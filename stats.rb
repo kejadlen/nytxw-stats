@@ -32,31 +32,46 @@ solve_times = data.to_h
   .transform_values(&:solve_seconds)
   .reject { _2.nil? }
 
-last_year = solve_times
-  .select {|k,_| k > Date.today.prev_year }
+TARGET = Date.today
 
-wday_times = last_year
-  .group_by {|k,_| k.wday }
-  .transform_values { _1.map(&:last) }
+def window(solve_times, date)
+  solve_times.select {|k,_| k.between?(date.prev_year, date.next_year) }
+end
 
-means = wday_times.transform_values {|secs| secs.sum / secs.size }
-stddevs = wday_times
-  .to_h {|wday, secs|
-    mean = means.fetch(wday)
-    [wday, Math.sqrt(secs.map { (_1 - mean) ** 2 }.sum / secs.size)]
-  }
+# Per-weekday mean and stddev over the year on either side of `date`. Centering
+# the window on the puzzle rather than on today keeps a z-score relative to how
+# fast I was solving at the time, so old dates stay comparable to recent ones.
+stats = Hash.new do |cache, date|
+  wday_times = window(solve_times, date)
+    .group_by {|k,_| k.wday }
+    .transform_values { _1.map(&:last) }
+
+  means = wday_times.transform_values {|secs| secs.sum / secs.size }
+  stddevs = wday_times
+    .to_h {|wday, secs|
+      mean = means.fetch(wday)
+      [wday, Math.sqrt(secs.map { (_1 - mean) ** 2 }.sum / secs.size)]
+    }
+
+  cache[date] = [means, stddevs]
+end
+
+z_score = ->(date) {
+  means, stddevs = stats[date]
+  (solve_times.fetch(date) - means.fetch(date.wday)) / stddevs.fetch(date.wday)
+}
+
+target_means, target_stddevs = stats[TARGET]
 
 puts "%-9s %8s %8s" % ["Day", "Mean", "StdDev"]
 [*(1..6), 0].each do |wday|
   puts "%-9s %8s %8s" %
-    [Date::DAYNAMES.fetch(wday), format_time(means.fetch(wday)), format_time(stddevs.fetch(wday))]
+    [Date::DAYNAMES.fetch(wday),
+     format_time(target_means.fetch(wday)),
+     format_time(target_stddevs.fetch(wday))]
 end
 
-z_scores = last_year.to_h {|date, secs|
-  mean = means.fetch(date.wday)
-  stddev = stddevs.fetch(date.wday)
-  [date, (secs - mean) / stddev]
-}
+z_scores = window(solve_times, TARGET).to_h {|date, _| [date, z_score.(date)] }
 
 puts
 puts "%-21s %6s" % ["Date", "Z-Score"]
@@ -67,13 +82,13 @@ z_scores
   end
 
 puts
-puts Date.today
-puts z_scores.fetch(Date.today).round(2)
-puts z_scores.fetch(Date.today - 7).round(2)
+puts TARGET
+puts z_score.(TARGET).round(2)
+puts z_score.(TARGET - 7).round(2)
 
 puts
 puts "2025-10-18"
-puts z_scores.fetch(Date.new(2025, 10, 18)).round(2)
+puts z_score.(Date.new(2025, 10, 18)).round(2)
 
 # solve_times
 #   .group_by {|date,_| date.year }

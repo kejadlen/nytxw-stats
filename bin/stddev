@@ -38,13 +38,14 @@ target_time = solve_times.fetch(target) {
   abort "No data for #{target}"
 }
 
-# Collect same-weekday solves from the past year (excluding the target date)
-one_year_ago = target.prev_year
+# Collect same-weekday solves from the year on either side of the target, so
+# the comparison reflects how fast I was solving around then rather than only
+# beforehand.
 same_wday = solve_times
-  .select { |d, _| d.wday == target.wday && d > one_year_ago && d < target }
+  .select { |d, _| d.wday == target.wday && d.between?(target.prev_year, target.next_year) }
   .values
 
-abort "Not enough same-weekday data in the past year" if same_wday.empty?
+abort "Not enough same-weekday data within a year of #{target}" if same_wday.empty?
 
 # Stats
 n     = same_wday.size
@@ -56,7 +57,7 @@ z_score  = (target_time - mean) / stddev
 puts "Date: #{target} (#{Date::DAYNAMES[target.wday]})"
 puts "Solve time: #{format_time(target_time)} (#{target_time}s)"
 puts
-puts "Past-year #{Date::DAYNAMES[target.wday]}s (n=#{n}):"
+puts "#{Date::DAYNAMES[target.wday]}s within a year of #{target} (n=#{n}):"
 puts "  Mean:   #{format_time(mean)} (#{mean.round(1)}s)"
 puts "  StdDev: #{format_time(stddev)} (#{stddev.round(1)}s)"
 puts
